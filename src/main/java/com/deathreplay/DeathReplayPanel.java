@@ -45,15 +45,13 @@ class DeathReplayPanel extends PluginPanel
 
 	private final Consumer<DeathRecord> onDelete;
 	private final Consumer<DeathRecord> onOpen;
-	private final Runnable onOpenFolder;
 	private final List<DeathRecord> deaths = new ArrayList<>();
 	private final JPanel content = new JPanel(new DynamicGridLayout(0, 1, 0, 6));
 
-	DeathReplayPanel(Consumer<DeathRecord> onDelete, Consumer<DeathRecord> onOpen, Runnable onOpenFolder)
+	DeathReplayPanel(Consumer<DeathRecord> onDelete, Consumer<DeathRecord> onOpen)
 	{
 		this.onDelete = onDelete;
 		this.onOpen = onOpen;
-		this.onOpenFolder = onOpenFolder;
 		setLayout(new BorderLayout());
 		setBorder(new EmptyBorder(10, 10, 10, 10));
 		add(content, BorderLayout.NORTH);
@@ -90,12 +88,6 @@ class DeathReplayPanel extends PluginPanel
 		if (deaths.isEmpty())
 		{
 			content.add(text("No deaths recorded yet.", ColorScheme.MEDIUM_GRAY_COLOR));
-		}
-		else
-		{
-			JButton folder = new JButton("Open saved deaths folder");
-			folder.addActionListener(e -> onOpenFolder.run());
-			content.add(folder);
 		}
 
 		for (DeathRecord death : deaths)

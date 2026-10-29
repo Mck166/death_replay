@@ -119,6 +119,11 @@ public class ClipWriterTest
 		assertEquals(64, decoded.getWidth());
 		assertEquals(36, decoded.getHeight());
 
+		// "Save video..." copies the whole .avi elsewhere
+		Path export = folder.newFolder("export").toPath();
+		store.exportClip(clip, Filepath.Unchecked.getRooted(export).joinSegment("saved.avi"));
+		assertArrayEquals(Files.readAllBytes(root.resolve("deaths").resolve(clip.getFile())), Files.readAllBytes(export.resolve("saved.avi")));
+
 		store.pruneClips(0);
 		assertNull(store.readClip(clip));
 		assertEquals(0, Files.list(root.resolve("deaths")).count());

@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -159,14 +160,12 @@ class DeathStore
 		}
 	}
 
-	String directory()
+	/**
+	 * Copies a death's video to a file the user picked.
+	 */
+	void exportClip(ClipInfo clip, Filepath target) throws IOException
 	{
-		return dir.toString();
-	}
-
-	String clipPath(ClipInfo clip)
-	{
-		return dir.joinSegment(clip.getFile()).toString();
+		dir.joinSegment(clip.getFile()).copyTo(target, StandardCopyOption.REPLACE_EXISTING);
 	}
 
 	private static List<String> oldestFirstBeyond(List<Filepath> files, String extension, int keep)

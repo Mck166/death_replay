@@ -2,6 +2,7 @@ package com.deathreplay;
 
 import com.google.gson.Gson;
 import com.google.inject.Provides;
+import java.awt.Component;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -11,7 +12,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import javax.inject.Inject;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +50,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.DrawManager;
 import net.runelite.client.ui.NavigationButton;
-import net.runelite.client.util.LinkBrowser;
+import net.runelite.client.util.Filepath;
 import net.runelite.client.util.Text;
 
 /**
@@ -138,7 +141,7 @@ public class DeathReplayPlugin extends Plugin
 		recorder = new FrameRecorder(client, drawManager, config, executor);
 		recorder.start();
 
-		panel = new DeathReplayPanel(this::deleteDeath, this::openReplay, this::openFolder);
+		panel = new DeathReplayPanel(this::deleteDeath, this::openReplay);
 		BufferedImage icon = DeathReplayPanel.createIcon();
 		navButton = NavigationButton.builder()
 			.tooltip("Death Replay")
@@ -442,26 +445,65 @@ public class DeathReplayPlugin extends Plugin
 
 			List<byte[]> loaded = frames;
 			String noVideo = message;
-			Runnable openFile = loaded != null ? () -> LinkBrowser.open(store.clipPath(clip)) : null;
+			Consumer<Component> saveVideo = loaded != null ? parent -> saveVideo(parent, record) : null;
 			SwingUtilities.invokeLater(() ->
 			{
 				if (viewer != null)
 				{
 					viewer.dispose();
 				}
-				viewer = new ReplayViewer(record, loaded, noVideo, openFile);
+				viewer = new ReplayViewer(record, loaded, noVideo, saveVideo);
 				viewer.setVisible(true);
 			});
 		});
 	}
 
-	private void openFolder()
+	/**
+	 * Asks where to save a copy of a death's video, then copies it off the
+	 * client thread. Runs on the EDT.
+	 */
+	private void saveVideo(Component parent, DeathRecord record)
 	{
-		DeathStore store = this.store;
-		if (store != null)
+		ClipInfo clip = record.getClip();
+		List<Filepath> chosen = new Filepath.Chooser()
+			.setIsSave()
+			.setAcceptsFiles()
+			.setDialogTitle("Save death video")
+			.addExtensionFilter("AVI video", "avi")
+			.setDefaultExtension("avi")
+			.setFileName(clip.getFile())
+			.showDialog(parent);
+		if (chosen == null || chosen.isEmpty())
 		{
-			LinkBrowser.open(store.directory());
+			return;
 		}
+
+		Filepath target = chosen.get(0);
+		if (target.exists() && JOptionPane.showConfirmDialog(parent, target.getFileName() + " already exists. Replace it?",
+			"Save death video", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
+		{
+			return;
+		}
+
+		executor.execute(() ->
+		{
+			DeathStore store = this.store;
+			if (store == null)
+			{
+				return;
+			}
+
+			try
+			{
+				store.exportClip(clip, target);
+			}
+			catch (IOException e)
+			{
+				log.warn("Unable to save video for death {}", record.getId(), e);
+				SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "Unable to save the video: " + e.getMessage(),
+					"Save death video", JOptionPane.ERROR_MESSAGE));
+			}
+		});
 	}
 
 	private void deleteDeath(DeathRecord record)

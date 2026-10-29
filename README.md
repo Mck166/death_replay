@@ -35,6 +35,7 @@ the plugin's Video settings.
 - A **replay window** with the video next to every tick: HP, prayer, spec,
   hits and their types, active prayers, food, and your target. Step tick by
   tick with the arrow keys, play at 0.25x-2x, or click any tick to jump to it.
+  **Save video...** copies the clip anywhere you like, e.g. to share it.
 
 Deaths are saved as JSON (plus the `.avi`) in `.runelite/plugin-data/death-replay/deaths/`.
 Old deaths are deleted once the limit set in the config is reached.

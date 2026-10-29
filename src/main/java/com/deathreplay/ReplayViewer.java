@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.MemoryCacheImageInputStream;
@@ -86,9 +87,9 @@ class ReplayViewer extends JFrame
 	/**
 	 * @param frameData JPEG bytes for each clip frame, or null when there is no video
 	 * @param noVideoMessage shown in place of the video when frameData is null
-	 * @param onOpenFile opens the .avi in the system player, or null
+	 * @param onSaveVideo asks where to save a copy of the .avi, given this window as the dialog parent, or null
 	 */
-	ReplayViewer(DeathRecord death, List<byte[]> frameData, String noVideoMessage, Runnable onOpenFile)
+	ReplayViewer(DeathRecord death, List<byte[]> frameData, String noVideoMessage, Consumer<Component> onSaveVideo)
 	{
 		super("Death Replay - " + (death.getLastTarget() != null ? death.getLastTarget() : "Unknown"));
 		this.death = death;
@@ -121,7 +122,7 @@ class ReplayViewer extends JFrame
 
 		add(canvas, BorderLayout.CENTER);
 		add(buildSide(), BorderLayout.EAST);
-		add(buildBottom(onOpenFile), BorderLayout.SOUTH);
+		add(buildBottom(onSaveVideo), BorderLayout.SOUTH);
 		bindKeys();
 
 		timer = new Timer(15, e -> onTimer());
@@ -187,7 +188,7 @@ class ReplayViewer extends JFrame
 		return side;
 	}
 
-	private JComponent buildBottom(Runnable onOpenFile)
+	private JComponent buildBottom(Consumer<Component> onSaveVideo)
 	{
 		JButton back = new JButton("< Tick");
 		back.setToolTipText("Previous tick (Left arrow)");
@@ -221,11 +222,11 @@ class ReplayViewer extends JFrame
 		controls.add(new JLabel("Speed"));
 		controls.add(speedBox);
 		controls.add(timeLabel);
-		if (onOpenFile != null)
+		if (onSaveVideo != null)
 		{
-			JButton open = new JButton("Open video file");
-			open.addActionListener(e -> onOpenFile.run());
-			controls.add(open);
+			JButton save = new JButton("Save video...");
+			save.addActionListener(e -> onSaveVideo.accept(this));
+			controls.add(save);
 		}
 
 		strip.setPreferredSize(new Dimension(0, 70));
